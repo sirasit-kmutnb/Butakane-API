@@ -4,13 +4,13 @@ pipeline {
     stages {
         stage('Clone') {
             steps {
-                git branch: 'release-1.0.0.0', url: 'https://github.com/sirasit-kmutnb/Butakane-API.git'
+                git branch: 'release-1.0.0.0', url: 'https://github.com/artnont/Butakane-API.git'
             }
         }
 
         stage('Build') {
             steps {
-                sh 'mvn clean package'
+                sh './mvnw clean package -DskipTests'
             }
         }
 
@@ -22,7 +22,6 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                // Example: Using kubectl to deploy
                 sh 'kubectl apply -f k8s/deployment.yaml --namespace=butakane-dev'
             }
         }
@@ -30,10 +29,10 @@ pipeline {
 
     post {
         success {
-            echo 'Build and deploy successful!'
+            echo '✅ Build and deploy successful!'
         }
         failure {
-            echo 'Build or deploy failed.'
+            echo '❌ Build or deploy failed.'
         }
     }
 }
