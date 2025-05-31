@@ -45,11 +45,13 @@ pipeline {
 
         stage('Deploy to K8s') {
             steps {
-                sh '''
-                    kubectl set image deployment/butakane-api \
-                    butakane-api=$IMAGE_NAME:$IMAGE_TAG \
-                    -n butakane-dev
-                '''
+                withEnv(["KUBECONFIG=/var/lib/jenkins/.kube/config"]) {
+                    sh '''
+                        kubectl set image deployment/butakane-api \
+                          butakane-api=$IMAGE_NAME:$IMAGE_TAG \
+                          -n butakane-dev
+                    '''
+                }
             }
         }
     }
