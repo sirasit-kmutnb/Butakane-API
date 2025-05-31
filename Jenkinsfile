@@ -4,7 +4,7 @@ pipeline {
     stages {
         stage('Clone') {
             steps {
-                git 'https://github.com/your/repo.git'
+                git 'https://github.com/sirasit-kmutnb/Butakane-API/tree/release-1.0.0.0'
             }
         }
 
