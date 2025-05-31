@@ -49,6 +49,7 @@ pipeline {
                     sh '''
                       kubectl get deployment butakane-api -n butakane-dev || \
                       kubectl apply -f k8s/deployment.yaml --namespace=butakane-dev
+                      kubectl apply -f k8s/service.yaml
 
                       kubectl set image deployment/butakane-api \
                         butakane-api=$IMAGE_NAME:$IMAGE_TAG \
