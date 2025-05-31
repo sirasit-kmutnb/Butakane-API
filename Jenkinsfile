@@ -47,9 +47,12 @@ pipeline {
             steps {
                 withEnv(["KUBECONFIG=/var/lib/jenkins/.kube/config"]) {
                     sh '''
-                        kubectl set image deployment/butakane-api \
-                          butakane-api=$IMAGE_NAME:$IMAGE_TAG \
-                          -n butakane-dev
+                      kubectl get deployment butakane-api -n butakane-dev || \
+                      kubectl apply -f k8s/deployment.yaml --namespace=butakane-dev
+
+                      kubectl set image deployment/butakane-api \
+                        butakane-api=$IMAGE_NAME:$IMAGE_TAG \
+                        -n butakane-dev
                     '''
                 }
             }
