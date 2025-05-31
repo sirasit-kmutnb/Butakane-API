@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: butakane-api
+  namespace: butakane-dev
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: butakane-api
+  template:
+    metadata:
+      labels:
+        app: butakane-api
+    spec:
+      containers:
+        - name: butakane-api
+          image: your-dockerhub-username/butakane-api:latest
+          ports:
+            - containerPort: 8081
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: dev

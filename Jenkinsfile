@@ -1,6 +1,12 @@
 pipeline {
     agent any
 
+    environment {
+        IMAGE_NAME = "artnont/butakane-api"
+        IMAGE_TAG = "${env.BUILD_NUMBER}"
+        REGISTRY_CREDENTIALS = "dockerhub"
+    }
+
     stages {
         stage('Clone') {
             steps {
@@ -20,19 +26,41 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
+        stage('Build Docker Image') {
             steps {
-                sh 'kubectl apply -f k8s/deployment.yaml --namespace=butakane-dev'
+                sh 'docker build -t $IMAGE_NAME:$IMAGE_TAG .'
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: "$REGISTRY_CREDENTIALS", usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                    sh '''
+                        echo "$PASSWORD" | docker login -u "$USERNAME" --password-stdin
+                        docker push $IMAGE_NAME:$IMAGE_TAG
+                    '''
+                }
+            }
+        }
+
+        stage('Deploy to K8s') {
+            steps {
+                sh '''
+                    kubectl set image deployment/butakane-api \
+                    butakane-api=$IMAGE_NAME:$IMAGE_TAG \
+                    -n butakane-dev
+                '''
             }
         }
     }
 
     post {
         success {
-            echo '✅ Build and deploy successful!'
+            echo "✅ Deployed: $IMAGE_NAME:$IMAGE_TAG"
         }
         failure {
-            echo '❌ Build or deploy failed.'
+            echo "❌ Build failed!"
         }
     }
 }
+
