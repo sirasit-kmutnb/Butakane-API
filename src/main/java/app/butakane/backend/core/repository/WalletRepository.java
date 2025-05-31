@@ -1,7 +1,8 @@
 package app.butakane.backend.core.repository;
 
-import app.butakane.backend.core.model.response.WalletInfoResponse;
+import app.butakane.backend.core.model.response.WalletDataResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -14,40 +15,38 @@ import java.util.List;
 @Repository
 public class WalletRepository {
 
-    @Autowired
-    private NamedParameterJdbcTemplate jdbcTemplate;
+    private final JdbcTemplate jdbcTemplate;
 
-    public List<WalletInfoResponse> fetchWalletInfo(String userId) {
-        String sql = "SELECT id, balance, updated_at FROM wallet WHERE id = :id";
-        MapSqlParameterSource params = new MapSqlParameterSource("id", userId);
-
-        return jdbcTemplate.query(sql, params, new RowMapper<WalletInfoResponse>() {
-            @Override
-            public WalletInfoResponse mapRow(ResultSet rs, int rowNum) throws SQLException {
-                WalletInfoResponse dto = new WalletInfoResponse();
-                dto.setId(rs.getString("id"));
-                dto.setBalance(rs.getInt("balance"));
-                dto.setUpdatedAt(rs.getTimestamp("updated_at").toString());
-                return dto;
-            }
-        });
+    public WalletRepository(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
     }
 
-    public void insertMoney(String userId, int amount, boolean isIncome, String detail) {
-        String sql = "INSERT INTO money (id, amount, type, detail) VALUES (:id, :amount, :type, :detail)";
-        MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("id", userId)
-                .addValue("amount", amount)
-                .addValue("type", isIncome)
-                .addValue("detail", detail);
-        jdbcTemplate.update(sql, params);
+    public WalletDataResponse getWalletByUserId(String id) {
+        String sql = "SELECT id, balance FROM wallet WHERE id = ?";
+        return jdbcTemplate.queryForObject(
+                sql,
+                new Object[]{id},
+                (rs, rowNum) -> new WalletDataResponse(
+                        rs.getString("id"),
+                        rs.getString("balance")
+                )
+        );
     }
 
-    public void updateWalletBalance(String userId, int delta) {
-        String sql = "UPDATE wallet SET balance = balance + :amount WHERE id = :id";
-        MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("id", userId)
-                .addValue("amount", delta);
-        jdbcTemplate.update(sql, params);
+    public void createBase(String id) {
+        String sql = "INSERT INTO wallet (id, balance) VALUES (?, '0')";
+        jdbcTemplate.update(sql, id);
     }
+
+    public void updateBalance(String id, String newBalance) {
+        String sql = "UPDATE wallet SET balance = ? WHERE id = ?";
+        jdbcTemplate.update(sql, newBalance, id);
+    }
+
+    public String getBalance(String id) {
+        String sql = "SELECT balance FROM wallet WHERE id = ?";
+        return jdbcTemplate.queryForObject(sql, String.class, id);
+    }
+
 }
+

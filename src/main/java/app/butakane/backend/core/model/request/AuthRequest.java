@@ -7,12 +7,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class AuthRequest {
-
-    @NotBlank(message = "Username is required")
     private String username;
-
-    @NotBlank(message = "Password is required")
     private String password;
-
-    private String confirmPass; // Only used during registration
+    private String confirmPass; // null for login
 }

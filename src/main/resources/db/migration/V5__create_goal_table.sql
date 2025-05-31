@@ -1,0 +1,8 @@
+CREATE TABLE goal (
+    id CHAR(36) PRIMARY KEY,
+    item VARCHAR(255),
+    url VARCHAR(255),
+    price VARCHAR(50) DEFAULT '0',
+    piggy VARCHAR(50) DEFAULT '0',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

@@ -1,22 +1,23 @@
 package app.butakane.backend.core.controller;
 
-import com.example.financeapp.service.OverviewService;
-import jakarta.servlet.http.HttpServletRequest;
+import app.butakane.backend.core.model.response.OverviewResponse;
+import app.butakane.backend.core.service.OverviewService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/overview")
+@RequestMapping("/api/alloverviewinfo")
 public class OverviewController {
 
-    @Autowired
-    private OverviewService overviewService;
+    @Autowired private OverviewService overviewService;
 
-    @GetMapping("/all")
-    public ResponseEntity<?> getOverview(HttpServletRequest request) {
-        return overviewService.getOverview(request);
+    @GetMapping
+    public ResponseEntity<OverviewResponse> getOverview(@RequestHeader("Authorization") String token) {
+        return ResponseEntity.ok(overviewService.getOverview(token));
     }
 }
+

@@ -3,68 +3,73 @@ package app.butakane.backend.core.service;
 import app.butakane.backend.core.model.User;
 import app.butakane.backend.core.model.request.AuthRequest;
 import app.butakane.backend.core.model.response.AuthResponse;
-import app.butakane.backend.core.repository.UserRepository;
+import app.butakane.backend.core.repository.*;
 import app.butakane.backend.core.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class UserService {
 
     @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private WalletRepository walletRepository;
+
+    @Autowired
+    private BorrowRepository borrowRepository;
+
+    @Autowired
+    private LendRepository lendRepository;
+
+    @Autowired
+    private GoalRepository goalRepository;
 
     @Autowired
     private JwtUtil jwtUtil;
 
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    public AuthResponse register(AuthRequest request) {
+        String username = request.getUsername().toLowerCase();
+        String password = request.getPassword();
+        String confirmPassword = request.getConfirmPass();
 
-    public ResponseEntity<AuthResponse> registerUser(AuthRequest request) {
-        if (!request.getPassword().equals(request.getConfirmPass())) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new AuthResponse("Password doesn't match", null, null));
+        if (!password.equalsIgnoreCase(confirmPassword)) {
+            throw new IllegalArgumentException("Passwords do not match");
         }
 
-        if (userRepository.existsByUsername(request.getUsername().toLowerCase())) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new AuthResponse("Username has been used", null, null));
-        }
+        String id = UUID.randomUUID().toString();
+        String hashed = new BCryptPasswordEncoder().encode(password);
+        userRepository.createUser(id, username, hashed);
 
-        User user = new User();
-        user.setUsername(request.getUsername().toLowerCase());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        userRepository.save(user);
+        walletRepository.createBase(id);
+        borrowRepository.createBase(id);
+        lendRepository.createBase(id);
+        goalRepository.createBase(id);
 
-        String token = jwtUtil.generateToken(user);
-        return ResponseEntity.ok(new AuthResponse("User registered successfully", user.getUsername(), token));
+        return new AuthResponse("New user has been created.", username, null);
     }
 
-    public ResponseEntity<AuthResponse> loginUser(AuthRequest request) {
-        Optional<User> userOpt = userRepository.findByUsername(request.getUsername().toLowerCase());
+    public AuthResponse login(AuthRequest request) {
+        var user = userRepository.findByUsername(request.getUsername().toLowerCase());
+        String hashed = (String) user.get("password");
 
-        if (userOpt.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new AuthResponse("Username doesn't exist", null, null));
+        if (!new BCryptPasswordEncoder().matches(request.getPassword(), hashed)) {
+            throw new IllegalArgumentException("Invalid password");
         }
 
-        User user = userOpt.get();
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new AuthResponse("Password doesn't match", null, null));
-        }
-
-        String token = jwtUtil.generateToken(user);
-        return ResponseEntity.ok(new AuthResponse("Login successful", user.getUsername(), token));
-    }
-
-    public ResponseEntity<?> deleteUser(String token) {
-        String userId = jwtUtil.extractUserId(token);
-        userRepository.deleteById(userId);
-        return ResponseEntity.ok("User deleted successfully");
+        String token = jwtUtil.generateToken(user.get("id").toString(), user.get("username").toString());
+        return new AuthResponse("Login successful", user.get("username").toString(), token);
     }
 }
+

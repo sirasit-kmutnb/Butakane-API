@@ -1,56 +1,80 @@
 package app.butakane.backend.core.util;
 
-import app.butakane.backend.core.model.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
+import io.jsonwebtoken.*;
+
+import javax.crypto.SecretKey;
+
 @Component
+@Slf4j
 public class JwtUtil {
 
     @Value("${jwt.secret}")
-    private String jwtSecret;
+    private String secret;
 
-    @Value("${jwt.expiration}")
-    private long jwtExpirationInMs;
+    @Value("${jwt.expiration-ms:86400000}") // 24 hours default
+    private long expirationMs;
 
-    public String generateToken(User user) {
+    public String generateToken(String userId, String username) {
         return Jwts.builder()
-                .claim("userID", user.getId())
-                .claim("userName", user.getUsername())
+                .setSubject(userId)
+                .claim("username", username)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + jwtExpirationInMs))
-                .signWith(SignatureAlgorithm.HS256, jwtSecret)
+                .setExpiration(new Date(System.currentTimeMillis() + expirationMs))
+                .signWith(Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8)), SignatureAlgorithm.HS256)
                 .compact();
     }
 
     public String extractUserId(String token) {
-        Claims claims = getClaims(token);
-        return claims.get("userID", String.class);
+        try {
+            Claims claims = extractAllClaims(token);
+            return claims.getSubject(); // userId
+        } catch (Exception e) {
+            throw new RuntimeException("Invalid JWT token");
+        }
     }
 
     public String extractUsername(String token) {
-        Claims claims = getClaims(token);
-        return claims.get("userName", String.class);
+        try {
+            Claims claims = extractAllClaims(token);
+            return claims.get("username", String.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Invalid JWT token");
+        }
     }
 
     public boolean validateToken(String token) {
         try {
-            getClaims(token);
+            extractAllClaims(token);
             return true;
-        } catch (Exception e) {
+        } catch (JwtException | IllegalArgumentException e) {
             return false;
         }
     }
 
-    private Claims getClaims(String token) {
-        return Jwts.parser()
-                .setSigningKey(jwtSecret)
-                .parseClaimsJws(token.replace("Bearer ", ""))
+    private Claims extractAllClaims(String token) {
+        if (token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
+        return Jwts.parserBuilder()
+                .setSigningKey(secretKey())
+                .build()
+                .parseClaimsJws(token)
                 .getBody();
     }
+
+    private SecretKey secretKey() {
+        return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+    }
 }
+
