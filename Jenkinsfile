@@ -16,13 +16,13 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh 'chmod +x ./mvnw && ./mvnw clean package -DskipTests'
+                sh 'chmod +x ./mvnw && ./mvnw clean package -DskipTests -Dspring.profiles.active=test'
             }
         }
 
         stage('Test') {
             steps {
-                sh 'chmod +x ./mvnw && ./mvnw test'
+                sh 'chmod +x ./mvnw && ./mvnw test -Dspring.profiles.active=test'
             }
         }
 
