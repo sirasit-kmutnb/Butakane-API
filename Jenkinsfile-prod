@@ -14,10 +14,11 @@ pipeline {
                 script {
                     // Copy artifact from the alpha build job
                     copyArtifacts(
-                        projectName: 'butakane-api-alpha',  // Replace with your alpha job name
-                        selector: lastSuccessful(),
+                        projectName: 'butakane-api-alpha',
+                        selector: [$class: 'LastSuccessfulBuildSelector'],
                         filter: 'version.txt'
                     )
+
 
                     IMAGE_TAG = readFile('version.txt').trim()
                     echo "Promoting image tag: ${IMAGE_TAG}"
