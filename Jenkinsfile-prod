@@ -29,10 +29,10 @@ pipeline {
             steps {
                 withEnv(["KUBECONFIG=/var/lib/jenkins/.kube/config"]) {
                     sh """
-                      helm upgrade --install butakane-api ${HELM_CHART_PATH} \
+                        helm upgrade --install butakane-api ${HELM_CHART_PATH} \
                         --namespace ${NAMESPACE} \
                         -f ${VALUES_FILE} \
-                        --set image.tag=${IMAGE_TAG}
+                        --set image.tag=${env.IMAGE_TAG}
                     """
                 }
             }
@@ -41,7 +41,7 @@ pipeline {
 
     post {
         success {
-            echo "✅ Successfully promoted to prod: ${IMAGE_REPO}:${IMAGE_TAG}"
+            echo "✅ Successfully promoted to prod: ${IMAGE_REPO}:${env.IMAGE_TAG}"
         }
         failure {
             echo "❌ Promotion failed!"
