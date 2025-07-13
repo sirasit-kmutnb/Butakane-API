@@ -11,17 +11,15 @@ pipeline {
     stages {
         stage('Fetch Alpha Version') {
             steps {
+                step([
+                    $class: 'CopyArtifact',
+                    projectName: 'butakane-api-alpha',
+                    filter: 'version.txt',
+                    selector: [$class: 'StatusBuildSelector', stable: false]
+                ])
                 script {
-                    // Copy artifact from the alpha build job
-                    copyArtifacts(
-                        projectName: 'butakane-api-alpha',
-                        selector: specific('lastSuccessful'),
-                        filter: 'version.txt'
-                    )
-
-
-                    IMAGE_TAG = readFile('version.txt').trim()
-                    echo "Promoting image tag: ${IMAGE_TAG}"
+                    def IMAGE_TAG = readFile('version.txt').trim()
+                    echo "✅ Promoting tag: ${IMAGE_TAG}"
                 }
             }
         }
