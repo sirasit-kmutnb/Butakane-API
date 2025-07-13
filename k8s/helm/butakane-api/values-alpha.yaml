@@ -6,7 +6,7 @@ image:
   pullPolicy: IfNotPresent
 
 service:
-  type: NodePort
+  type: LoadBalancer
   port: 8081
   nodePort: 30081
   name: butakane-api-alpha
