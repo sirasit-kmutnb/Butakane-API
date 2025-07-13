@@ -1,0 +1,15 @@
+replicaCount: 1
+
+image:
+  repository: lysist/butakane-api
+  tag: alpha-placeholder  # Will be overridden via --set or templated in Jenkins
+  pullPolicy: IfNotPresent
+
+service:
+  type: NodePort
+  port: 8081
+  nodePort: 30081
+
+springProfile: alpha
+
+namespace: butakane-dev

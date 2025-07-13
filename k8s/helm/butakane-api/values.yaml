@@ -1,0 +1,14 @@
+replicaCount: 2
+
+image:
+  repository: lysist/butakane-api
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: NodePort
+  port: 8081
+  nodePort: 30081
+
+springProfile: dev
+namespace: butakane-dev

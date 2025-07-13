@@ -1,0 +1,15 @@
+replicaCount: 2
+
+image:
+  repository: lysist/butakane-api
+  tag: latest  # Placeholder; will be overridden by --set
+  pullPolicy: IfNotPresent
+
+service:
+  type: NodePort
+  port: 8081
+  nodePort: 30082  # Use a different port than alpha if needed
+
+springProfile: dev  # Set to 'prod' if you have application-prod.properties
+
+namespace: butakane-dev

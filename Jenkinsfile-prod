@@ -1,0 +1,50 @@
+pipeline {
+    agent any
+
+    environment {
+        HELM_CHART_PATH = './k8s/helm/butakane-api'
+        NAMESPACE = 'butakane-dev'
+        VALUES_FILE = "${HELM_CHART_PATH}/values-prod.yaml"
+        IMAGE_REPO = 'lysist/butakane-api'
+    }
+
+    stages {
+        stage('Fetch Alpha Version') {
+            steps {
+                script {
+                    // Copy artifact from the alpha build job
+                    copyArtifacts(
+                        projectName: 'butakane-api-alpha',  // Replace with your alpha job name
+                        selector: lastSuccessful(),
+                        filter: 'version.txt'
+                    )
+
+                    IMAGE_TAG = readFile('version.txt').trim()
+                    echo "Promoting image tag: ${IMAGE_TAG}"
+                }
+            }
+        }
+
+        stage('Promote to Production via Helm') {
+            steps {
+                withEnv(["KUBECONFIG=/var/lib/jenkins/.kube/config"]) {
+                    sh """
+                      helm upgrade --install butakane-api ${HELM_CHART_PATH} \
+                        --namespace ${NAMESPACE} \
+                        -f ${VALUES_FILE} \
+                        --set image.tag=${IMAGE_TAG}
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ Successfully promoted to prod: ${IMAGE_REPO}:${IMAGE_TAG}"
+        }
+        failure {
+            echo "❌ Promotion failed!"
+        }
+    }
+}

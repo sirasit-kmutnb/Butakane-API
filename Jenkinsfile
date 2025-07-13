@@ -3,8 +3,11 @@ pipeline {
 
     environment {
         IMAGE_NAME = "lysist/butakane-api"
-        IMAGE_TAG = "${env.BUILD_NUMBER}"
+        IMAGE_TAG = "alpha-${BUILD_NUMBER}"
         REGISTRY_CREDENTIALS = "dockerhub"
+        HELM_CHART_PATH = "./k8s/helm/butakane-api"
+        VALUES_FILE = "${HELM_CHART_PATH}/values-alpha.yaml"
+        NAMESPACE = "butakane-dev"
     }
 
     stages {
@@ -14,47 +17,39 @@ pipeline {
             }
         }
 
-        stage('Build') {
+        stage('Build JAR') {
             steps {
-                sh 'chmod +x ./mvnw && ./mvnw clean package -DskipTests -Dspring.profiles.active=test'
+                sh './mvnw clean package -DskipTests -Dspring.profiles.active=test'
             }
         }
 
-        stage('Test') {
+        stage('Run Unit Tests') {
             steps {
-                sh 'chmod +x ./mvnw && ./mvnw test -Dspring.profiles.active=test'
+                sh './mvnw test -Dspring.profiles.active=test'
             }
         }
 
-        stage('Build Docker Image') {
-            steps {
-                sh 'docker build -t $IMAGE_NAME:$IMAGE_TAG .'
-            }
-        }
-
-        stage('Push to Docker Hub') {
+        stage('Build & Push Docker Image') {
             steps {
                 withCredentials([usernamePassword(credentialsId: "$REGISTRY_CREDENTIALS", usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
-                    sh '''
+                    sh """
+                        docker build -t $IMAGE_NAME:$IMAGE_TAG .
                         echo "$PASSWORD" | docker login -u "$USERNAME" --password-stdin
                         docker push $IMAGE_NAME:$IMAGE_TAG
-                    '''
+                    """
                 }
             }
         }
 
-        stage('Deploy to K8s') {
+        stage('Deploy to Alpha with Helm') {
             steps {
                 withEnv(["KUBECONFIG=/var/lib/jenkins/.kube/config"]) {
-                    sh '''
-                      kubectl get deployment butakane-api -n butakane-dev || \
-                      kubectl apply -f k8s/deployment.yaml --namespace=butakane-dev
-                      kubectl apply -f k8s/service.yaml
-
-                      kubectl set image deployment/butakane-api \
-                        butakane-api=$IMAGE_NAME:$IMAGE_TAG \
-                        -n butakane-dev
-                    '''
+                    sh """
+                        helm upgrade --install butakane-api-alpha $HELM_CHART_PATH \
+                          -f $VALUES_FILE \
+                          --namespace $NAMESPACE \
+                          --set image.tag=$IMAGE_TAG
+                    """
                 }
             }
         }
@@ -62,11 +57,12 @@ pipeline {
 
     post {
         success {
-            echo "✅ Deployed: $IMAGE_NAME:$IMAGE_TAG"
+            writeFile file: 'version.txt', text: "${IMAGE_TAG}"
+            archiveArtifacts artifacts: 'version.txt'
+            echo "✅ Deployed to alpha: $IMAGE_NAME:$IMAGE_TAG"
         }
         failure {
-            echo "❌ Build failed!"
+            echo "❌ Alpha deployment failed"
         }
     }
 }
-
