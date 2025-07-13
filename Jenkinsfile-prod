@@ -6,34 +6,38 @@ pipeline {
         NAMESPACE = 'butakane-dev'
         VALUES_FILE = "${HELM_CHART_PATH}/values-prod.yaml"
         IMAGE_REPO = 'lysist/butakane-api'
-        IMAGE_TAG = ""
     }
 
     stages {
         stage('Fetch Alpha Version') {
             steps {
-                step([
-                    $class: 'CopyArtifact',
-                    projectName: 'butakane-api-alpha',
-                    filter: 'version.txt',
-                    selector: [$class: 'StatusBuildSelector', stable: false]
-                ])
                 script {
-                    env.IMAGE_TAG = readFile('version.txt').trim()
-                    echo "✅ Promoting tag: ${env.IMAGE_TAG}"
+                    step([
+                        $class: 'CopyArtifact',
+                        projectName: 'butakane-api-alpha',
+                        filter: 'version.txt',
+                        selector: [$class: 'StatusBuildSelector', stable: false]
+                    ])
+                    IMAGE_TAG = readFile('version.txt').trim()
+                    echo "✅ Promoting tag: ${IMAGE_TAG}"
                 }
             }
         }
 
         stage('Promote to Production via Helm') {
             steps {
-                withEnv(["KUBECONFIG=/var/lib/jenkins/.kube/config"]) {
-                    sh """
-                        helm upgrade --install butakane-api ${HELM_CHART_PATH} \
-                        --namespace ${NAMESPACE} \
-                        -f ${VALUES_FILE} \
-                        --set image.tag=${env.IMAGE_TAG}
-                    """
+                script {
+                    withEnv([
+                        "KUBECONFIG=/var/lib/jenkins/.kube/config",
+                        "IMAGE_TAG=${IMAGE_TAG}"
+                    ]) {
+                        sh """
+                            helm upgrade --install butakane-api ${HELM_CHART_PATH} \
+                              --namespace ${NAMESPACE} \
+                              -f ${VALUES_FILE} \
+                              --set image.tag=${IMAGE_TAG}
+                        """
+                    }
                 }
             }
         }
@@ -41,7 +45,9 @@ pipeline {
 
     post {
         success {
-            echo "✅ Successfully promoted to prod: ${IMAGE_REPO}:${env.IMAGE_TAG}"
+            script {
+                echo "✅ Successfully promoted to prod: ${IMAGE_REPO}:${IMAGE_TAG}"
+            }
         }
         failure {
             echo "❌ Promotion failed!"
