@@ -15,7 +15,7 @@ pipeline {
                     // Copy artifact from the alpha build job
                     copyArtifacts(
                         projectName: 'butakane-api-alpha',
-                        selector: [$class: 'LastSuccessfulBuildSelector'],
+                        selector: specific('lastSuccessful'),
                         filter: 'version.txt'
                     )
 
