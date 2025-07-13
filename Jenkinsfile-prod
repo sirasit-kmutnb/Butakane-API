@@ -19,8 +19,8 @@ pipeline {
                     selector: [$class: 'StatusBuildSelector', stable: false]
                 ])
                 script {
-                    def IMAGE_TAG = readFile('version.txt').trim()
-                    echo "✅ Promoting tag: ${IMAGE_TAG}"
+                    env.IMAGE_TAG = readFile('version.txt').trim()
+                    echo "✅ Promoting tag: ${env.IMAGE_TAG}"
                 }
             }
         }
