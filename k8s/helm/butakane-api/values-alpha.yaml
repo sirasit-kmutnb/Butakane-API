@@ -14,3 +14,5 @@ service:
 springProfile: alpha
 
 namespace: butakane-dev
+
+nameOverride: butakane-api-alpha
