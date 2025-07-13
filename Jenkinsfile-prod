@@ -6,6 +6,7 @@ pipeline {
         NAMESPACE = 'butakane-dev'
         VALUES_FILE = "${HELM_CHART_PATH}/values-prod.yaml"
         IMAGE_REPO = 'lysist/butakane-api'
+        IMAGE_TAG = ""
     }
 
     stages {
